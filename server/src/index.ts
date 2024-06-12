@@ -21,7 +21,7 @@ app.use(logger);
 app.use(express.json());
 
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000', "https://hw-backend-2.vercel.app/"],
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
