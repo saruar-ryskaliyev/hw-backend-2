@@ -12,7 +12,7 @@ interface ChatProps {
   user2: string;
 }
 
-const socket = io('http://localhost:8000');
+const socket = io('http://hw-backend-2-1.onrender.com');
 
 const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
   useEffect(() => {
     const fetchChatHistory = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/api/v1/chat/history/${user1}/${user2}`);
+        const response = await axios.get(`http://hw-backend-2-1.onrender.com/api/v1/chat/history/${user1}/${user2}`);
         setMessages(response.data);
       } catch (error) {
         console.error('Failed to fetch chat history:', error);
@@ -75,7 +75,7 @@ const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
     };
 
     try {
-      await axios.post('http://localhost:8000/api/v1/chat/send', message);
+      await axios.post('http://hw-backend-2-1.onrender.com/api/v1/chat/send', message);
       socket.emit('chat message', message);
       setNewMessage('');
     } catch (error) {
@@ -88,14 +88,6 @@ const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
     socket.emit('typing', { sender: user.username, receiver: user2 });
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
-    try {
-      await axios.delete(`http://localhost:8000/api/v1/chat/delete/${messageId}`);
-      setMessages((prevMessages) => prevMessages.filter((message) => message._id !== messageId));
-    } catch (error) {
-      console.error('Failed to delete message:', error);
-    }
-  };
 
   return (
     <div className="flex flex-col h-full">
@@ -111,14 +103,6 @@ const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
             <p className="font-bold">{message.sender}:</p>
             <p>{message.message}</p>
             <small className="text-gray-500">{new Date(message.timestamp).toLocaleString()}</small>
-            {message.sender === user.username && (
-              <button
-                onClick={() => handleDeleteMessage(message._id)}
-                className="text-red-500 ml-2"
-              >
-                Delete
-              </button>
-            )}
           </div>
         ))}
         {isTyping && <TypingIndicator />}

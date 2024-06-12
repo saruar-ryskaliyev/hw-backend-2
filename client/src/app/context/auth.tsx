@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get('http://localhost:8000/api/v1/auth/me')
+      axios.get('http://hw-backend-2-1.onrender.com/api/v1/auth/me')
         .then(response => {
           setUser(response.data);
           setLoading(false);
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('http://localhost:8000/api/v1/auth/login', { email, password });
+      const response = await axios.post('http://hw-backend-2-1.onrender.com/api/v1/auth/login', { email, password });
       localStorage.setItem('token', response.data.accessToken);
       setUser(response.data.user);
       router.push('/messenger');
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      await axios.post('http://localhost:8000/api/v1/auth/register', { username, email, password });
+      await axios.post('http://hw-backend-2-1.onrender.com/api/v1/auth/register', { username, email, password });
       router.push('/login');
     } catch (error: unknown) {
       if (error instanceof AxiosError) {

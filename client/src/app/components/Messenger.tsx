@@ -6,7 +6,7 @@ import Chat from './Chat';
 import { useAuth } from '../context/auth';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:8000');
+const socket = io('http://hw-backend-2-1.onrender.com');
 
 const Messenger: React.FC<{ users: any[] }> = ({ users }) => {
   const { user } = useAuth();

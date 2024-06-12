@@ -11,7 +11,7 @@ interface HeaderProps {
     onSearch: (results: any[]) => void;
 }
 
-const socket = io('http://localhost:8000');
+const socket = io('http://hw-backend-2-1.onrender.com');
 
 const Header: React.FC<HeaderProps> = ({ onSearch }) => {
     const { logout, user } = useAuth();
@@ -31,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch }) => {
         }
 
         try {
-            const response = await axios.get(`http://localhost:8000/api/v1/auth/search/${query}`);
+            const response = await axios.get(`http://hw-backend-2-1.onrender.com/api/v1/auth/search/${query}`);
             const filteredData = response.data.filter((u: any) => u.username !== currentUser.username);
 
             onSearch(filteredData);
