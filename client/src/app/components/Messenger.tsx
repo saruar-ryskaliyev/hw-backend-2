@@ -1,70 +1,66 @@
+// src/components/Messenger.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import io from 'socket.io-client';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import Chat from './Chat';
 import { useAuth } from '../context/auth';
-import { User, Message } from '../types'
+import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:8000');
 
-const Messenger = () => {
+const Messenger: React.FC<{ users: any[] }> = ({ users }) => {
   const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [message, setMessage] = useState<string>('');
+  const [currentChat, setCurrentChat] = useState<{ user1: string; user2: string } | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
   useEffect(() => {
-
-
-    axios.get('http://localhost:8000/api/v1/auth/search/')
-      .then(response => setUsers(response.data))
-      .catch(error => console.error('Failed to fetch users:', error));
-
-    socket.on('message', (newMessage: Message) => {
-      setMessages(prevMessages => [...prevMessages, newMessage]);
+    socket.on('updateUserStatus', ({ username, status }) => {
+      setOnlineUsers((prevOnlineUsers) => {
+        if (status === 'online') {
+          return [...prevOnlineUsers, username];
+        } else {
+          return prevOnlineUsers.filter((user) => user !== username);
+        }
+      });
     });
 
-
-
-
     return () => {
-      socket.off('message');
+      socket.off('updateUserStatus');
     };
-  }, []); 
+  }, []);
 
-
-
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      socket.emit('message', { content: message, user });
-      setMessage('');
-    }
+  const handleUserClick = (selectedUser: any) => {
+    setCurrentChat({ user1: user.username, user2: selectedUser.username });
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <div className="w-1/4 p-4 bg-white border-r">
-        <h2 className="text-lg font-bold mb-4">Users</h2>
-        <ul>
-          {users.map(user => (
-            <li key={user._id} className="mb-2">{user.username}</li>
-          ))}
-        </ul>
+    <div className="flex h-full">
+      <div className="w-1/4 border-r border-gray-200 p-4 overflow-y-auto">
+        {users.length > 0 ? (
+          users.map((u) => (
+            <button
+              key={u._id}
+              onClick={() => handleUserClick(u)}
+              className="w-full text-left p-2 border-b border-gray-200 hover:bg-gray-100"
+            >
+              {u.username}
+              {onlineUsers.includes(u.username) ? (
+                <span className="ml-2 text-green-500">(online)</span>
+              ) : (
+                <span className="ml-2 text-gray-500">(offline)</span>
+              )}
+            </button>
+          ))
+        ) : (
+          <p className="text-gray-500">No users found</p>
+        )}
       </div>
-      <div className="w-3/4 p-4 flex flex-col">
-        <div className="flex-1 overflow-y-scroll bg-white p-4 border rounded">
-          {messages.map((msg, index) => (
-            <div key={index} className="mb-2">
-              <strong>{msg.user.username}: </strong>
-              <span>{msg.content}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 flex">
-          <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} className="flex-1 p-2 border rounded mr-2" />
-          <button onClick={handleSendMessage} className="bg-blue-500 text-white p-2 rounded">Send</button>
-        </div>
+      <div className="w-3/4 p-4">
+        {currentChat ? (
+          <Chat user1={currentChat.user1} user2={currentChat.user2} />
+        ) : (
+          <p className="text-gray-500">Select a user to chat with</p>
+        )}
       </div>
     </div>
   );

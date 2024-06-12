@@ -1,16 +1,16 @@
+// src/app/messenger/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Messenger from '../components/Messenger';
 import Header from '../components/Header';
 import { useAuth } from '../context/auth';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 const MessengerPage: React.FC = () => {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
     console.log('MessengerPage useEffect:', { loading, user });
@@ -21,15 +21,19 @@ const MessengerPage: React.FC = () => {
     }
   }, [loading, user, router]);
 
+  const handleSearchResults = (results: any[]) => {
+    setUsers(results);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header onSearch={setSearchResults} />
-      <div className="p-4">
-        <Messenger />
+      <Header onSearch={handleSearchResults} />
+      <div className="p-4 h-full">
+        <Messenger users={users} />
       </div>
     </div>
   );
