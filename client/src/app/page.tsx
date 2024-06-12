@@ -1,28 +1,31 @@
+// src/app/page.tsx
 'use client';
 
 import React from 'react';
-import Messenger from './components/Messenger';
 import { useAuth } from './context/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-const MessengerPage: React.FC = () => {
-  const { user } = useAuth();
+const HomePage: React.FC = () => {
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
+    if (!loading) {
+      if (user) {
+        console.log('User:', user)
+        router.push('/messenger');
+      } else {
+        router.push('/login');
+      }
     }
-  }, [user, router]);
+  }, [loading, user, router]);
 
-  if (!user) {
+  if (loading) {
     return <div>Loading...</div>;
   }
 
-  return (
-    <Messenger />
-  );
+  return <div>Redirecting...</div>;
 };
 
-export default MessengerPage;
+export default HomePage;

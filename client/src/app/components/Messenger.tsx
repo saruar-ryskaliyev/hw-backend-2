@@ -17,7 +17,7 @@ const Messenger = () => {
   useEffect(() => {
 
 
-    axios.get('http://localhost:8000/api/v1/auth/search/query')
+    axios.get('http://localhost:8000/api/v1/auth/search/')
       .then(response => setUsers(response.data))
       .catch(error => console.error('Failed to fetch users:', error));
 
@@ -26,13 +26,14 @@ const Messenger = () => {
     });
 
 
-    console.log(users)
-    console.log(user)
+
 
     return () => {
       socket.off('message');
     };
-  }, []);
+  }, []); 
+
+
 
   const handleSendMessage = () => {
     if (message.trim()) {

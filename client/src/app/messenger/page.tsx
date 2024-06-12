@@ -1,26 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Messenger from '../components/Messenger';
+import Header from '../components/Header';
 import { useAuth } from '../context/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 const MessengerPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!user) {
+    console.log('MessengerPage useEffect:', { loading, user });
+
+    if (!loading && !user) {
+      console.log('Redirecting to /login');
       router.push('/login');
     }
-  }, [user, router]);
+  }, [loading, user, router]);
 
-  if (!user) {
+  if (loading) {
     return <div>Loading...</div>;
   }
 
-  return <Messenger />;
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <Header onSearch={setSearchResults} />
+      <div className="p-4">
+        <Messenger />
+      </div>
+    </div>
+  );
 };
 
 export default MessengerPage;

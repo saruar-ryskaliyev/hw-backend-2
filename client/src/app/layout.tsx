@@ -1,8 +1,11 @@
+// src/app/layout.tsx
+'use client';
+
 import './globals.css';
 import React from 'react';
 import { AuthProvider } from './context/auth';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const RootLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <html lang="en">
       <AuthProvider>
@@ -12,4 +15,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </AuthProvider>
     </html>
   );
-}
+};
+
+export default RootLayout;
