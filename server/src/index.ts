@@ -1,54 +1,68 @@
 import express from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
+import { Server as SocketIOServer } from 'socket.io';
+import dotenv from 'dotenv';
+import connectDB from './db';
+import globalRouter from './global-router';
+import chatRouter from './chat/chat-router'; 
+import { logger } from './logger';
+import ChatService from './chat/chat-service'; 
 import cors from 'cors';
 
+dotenv.config();
+
 const app = express();
-const port = 8000;  
 const server = http.createServer(app);
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+connectDB();
 
-const io = new Server(server, {
-    cors: {
-        origin: 'http://localhost:3000',
-        methods: ['GET', 'POST'],
-    },
+app.use(logger);
+app.use(express.json());
+
+app.use(cors({
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
+
+app.use('/api/v1/', globalRouter);
+app.use('/api/v1/chat', chatRouter);
+
+app.get('/', (req, res) => {
+  res.send('Hello World');
 });
 
-const connectedUsers: { [key: string]: string } = {};
-
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  },
+});
 
 io.on('connection', (socket) => {
+  console.log('a user connected');
 
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
 
-    socket.on('register_user', (userId) => {
-        connectedUsers[socket.id] = userId;
-        io.emit('update_user_list', Object.values(connectedUsers));
-    });
+  socket.on('chat message', async (msg) => {
+    console.log('message: ', msg);
 
-    socket.on('send_message', (data) => {
-        socket.broadcast.emit('receive_message', data);
-    });
-
-    socket.on('disconnect', () => {
-        delete connectedUsers[socket.id];
-        io.emit('update_user_list', Object.values(connectedUsers));
-    });
-
-    socket.on('typing', () => {
-        socket.broadcast.emit('user_typing');
-
-    });
-
-    socket.on('stop_typing', () => {
-        socket.broadcast.emit('user_stop_typing');
-    });
-
+    const { sender, receiver, message } = msg;
+    try {
+      const savedMessage = await ChatService.saveMessage(sender, receiver, message);
+      io.emit('chat message', savedMessage); // Broadcast the message to all clients
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  });
 });
 
-
-
-server.listen(port, () => {  
-    console.log(`listening on localhost:${port}`);
+server.listen(PORT, () => {
+  console.log(`Server runs at http://localhost:${PORT}`);
 });

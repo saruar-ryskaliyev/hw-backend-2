@@ -1,137 +1,68 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import TypingIndicator from './TypingIndicator';
+import axios from 'axios';
+import { useAuth } from '../context/auth';
+import { User, Message } from '../types'
 
 const socket = io('http://localhost:8000');
 
-interface Message {
-  id: string;
-  text: string;
-  sender: string;
-}
-
 const Messenger = () => {
-  const [message, setMessage] = useState('');
+  const { user } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isConnected, setIsConnected] = useState(socket.connected);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [message, setMessage] = useState<string>('');
 
   useEffect(() => {
-    const handleReceiveMessage = (data: Message) => {
-      setMessages((prevMessages) => [...prevMessages, data]);
-    }
-
-    const handleUserTyping = (userId: string) => {
-      setTypingUsers((prevTypingUsers) => [...prevTypingUsers, userId]);
-    }
-
-    const handleUserStoppedTyping = (userId: string) => {
-      setTypingUsers((prevTypingUsers) => prevTypingUsers.filter(user => user !== userId));
-    }
-
-    let storedUserId = localStorage.getItem('userId');
-    if (!storedUserId) {
-      storedUserId = `user_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('userId', storedUserId);
-    }
-    setUserId(storedUserId);
-
-    socket.emit('register_user', storedUserId);
 
 
-    socket.on('connect', () => {
-      setIsConnected(true);
+    axios.get('http://localhost:8000/api/v1/auth/search/query')
+      .then(response => setUsers(response.data))
+      .catch(error => console.error('Failed to fetch users:', error));
+
+    socket.on('message', (newMessage: Message) => {
+      setMessages(prevMessages => [...prevMessages, newMessage]);
     });
 
-    socket.on('disconnect', () => {
-      setIsConnected(false);
-    });
 
-    socket.on('receive_message', handleReceiveMessage);
-
-    socket.on('update_user_list', (users: string[]) => {
-      setConnectedUsers(users);
-    });
-
-    socket.on('user_typing', handleUserTyping);
-    socket.on('user_stop_typing', handleUserStoppedTyping);
+    console.log(users)
+    console.log(user)
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('receive_message', handleReceiveMessage);
-      socket.off('update_user_list');
+      socket.off('message');
     };
   }, []);
 
-  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMessage(e.target.value);
-    if (e.target.value.trim()) {
-      socket.emit('typing', userId);
-    } else {
-      socket.emit('stop_typing', userId);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      sendMessage();
-    }
-  };
-
-  const sendMessage = () => {
-    if (message.trim() && userId) {
-      const newMessage: Message = { id: new Date().toISOString(), text: message, sender: userId };
-      socket.emit('send_message', newMessage);
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
+  const handleSendMessage = () => {
+    if (message.trim()) {
+      socket.emit('message', { content: message, user });
       setMessage('');
-      socket.emit('stop_typing', userId);
     }
   };
-
-  const isUserOnline = (userId: string | null) => {
-    return userId && connectedUsers.some(user => user !== userId);
-  };
-
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-2xl p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-5xl font-bold mb-4">Messenger</h1>
-        <p className="mb-4 text-gray-600">Status: {isUserOnline(userId) ? 'Online' : 'Offline'}</p>
-        <div className="flex flex-col mb-4 h-80 overflow-y-auto border p-4 rounded-md bg-gray-50">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`mb-2 flex ${msg.sender === userId ? 'justify-end' : 'justify-start'}`}>
-              <div className={`p-2 rounded-lg ${msg.sender === userId ? 'bg-red-500 text-white' : 'bg-gray-200 text-black'}`}>
-                <span className="font-semibold">{msg.sender === userId ? 'Me' : msg.sender}</span>: {msg.text}
-              </div>
+    <div className="flex min-h-screen bg-gray-100">
+      <div className="w-1/4 p-4 bg-white border-r">
+        <h2 className="text-lg font-bold mb-4">Users</h2>
+        <ul>
+          {users.map(user => (
+            <li key={user._id} className="mb-2">{user.username}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="w-3/4 p-4 flex flex-col">
+        <div className="flex-1 overflow-y-scroll bg-white p-4 border rounded">
+          {messages.map((msg, index) => (
+            <div key={index} className="mb-2">
+              <strong>{msg.user.username}: </strong>
+              <span>{msg.content}</span>
             </div>
           ))}
-          {typingUsers.length > 0 && (
-            <div className="flex justify-start">
-              <TypingIndicator />
-            </div>
-          )}
         </div>
-        <div className="flex items-center">
-          <input
-            className="flex-1 p-2 border rounded-md mr-2"
-            type="text"
-            placeholder="Type a message"
-            value={message}
-            onChange={handleTyping}
-            onKeyPress={handleKeyPress}
-          />
-          <button
-            className="px-4 py-2 bg-red-500 text-white rounded-md"
-            onClick={sendMessage}
-          >
-            Send
-          </button>
+        <div className="mt-4 flex">
+          <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} className="flex-1 p-2 border rounded mr-2" />
+          <button onClick={handleSendMessage} className="bg-blue-500 text-white p-2 rounded">Send</button>
         </div>
       </div>
     </div>
