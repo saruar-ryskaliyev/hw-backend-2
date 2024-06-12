@@ -45,20 +45,22 @@ const onlineUsers = new Map();
 io.on('connection', (socket) => {
     console.log('a user connected');
 
-    socket.on('userConnected', (username) => {
-        onlineUsers.set(username, socket.id);
-        io.emit('updateUserStatus', { username, status: 'online' });
-    });
+    socket.on('register_user', (userId) => {
+        onlineUsers.set(userId, socket.id);
+        io.emit('update_user_list', Array.from(onlineUsers.keys()));
+        console.log(`${userId} connected`);
+      });
 
-    socket.on('disconnect', () => {
+      
+      socket.on('disconnect', () => {
         const disconnectedUser = [...onlineUsers.entries()].find(([key, value]) => value === socket.id);
         if (disconnectedUser) {
-            const [username] = disconnectedUser;
-            onlineUsers.delete(username);
-            io.emit('updateUserStatus', { username, status: 'offline' });
+          const [username] = disconnectedUser;
+          onlineUsers.delete(username);
+          io.emit('updateUserStatus', { username, status: 'offline' });
         }
         console.log('user disconnected');
-    });
+      });
 
     socket.on('chat message', async (msg) => {
         console.log('message: ', msg);
@@ -66,7 +68,7 @@ io.on('connection', (socket) => {
         const { sender, receiver, message } = msg;
         try {
             const savedMessage = await ChatService.saveMessage(sender, receiver, message);
-            io.emit('chat message', savedMessage); // Broadcast the message to all clients
+            io.emit('chat message', savedMessage); 
         } catch (error) {
             console.error('Error saving message:', error);
         }
@@ -74,7 +76,7 @@ io.on('connection', (socket) => {
 
     socket.on('typing', (data) => {
         console.log('typing: ', data);
-        io.emit('typing', data); // Broadcast the typing event to all clients
+        io.emit('typing', data); 
     });
 });
 

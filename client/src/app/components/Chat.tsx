@@ -19,6 +19,7 @@ const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [user2Status, setUser2Status] = useState('offline');
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,6 +33,8 @@ const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
     };
 
     fetchChatHistory();
+
+    socket.emit('requestOnlineStatus', [user1, user2]);
 
     socket.on('chat message', (message) => {
       if (
@@ -49,9 +52,16 @@ const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
       }
     });
 
+    socket.on('updateUserStatus', ({ username, status }) => {
+      if (username === user2) {
+        setUser2Status(status);
+      }
+    });
+
     return () => {
       socket.off('chat message');
       socket.off('typing');
+      socket.off('updateUserStatus');
     };
   }, [user1, user2, user.username]);
 
@@ -78,31 +88,37 @@ const Chat: React.FC<ChatProps> = ({ user1, user2 }) => {
     socket.emit('typing', { sender: user.username, receiver: user2 });
   };
 
-//   const handleDeleteMessage = async (messageId: string) => {
-//     try {
-//       await axios.delete(`http://localhost:8000/api/v1/chat/delete/${messageId}`);
-//       setMessages((prevMessages) => prevMessages.filter((message) => message._id !== messageId));
-//     } catch (error) {
-//       console.error('Failed to delete message:', error);
-//     }
-//   };
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await axios.delete(`http://localhost:8000/api/v1/chat/delete/${messageId}`);
+      setMessages((prevMessages) => prevMessages.filter((message) => message._id !== messageId));
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-4 border border-gray-200 rounded-lg mb-4" ref={chatRef}>
+        <div className="flex items-center mb-4">
+          <h2 className="text-lg font-bold">{user2}</h2>
+          <span className={`ml-2 text-sm ${user2Status === 'online' ? 'text-green-500' : 'text-gray-500'}`}>
+            ({user2Status})
+          </span>
+        </div>
         {messages.map((message) => (
           <div key={message._id || message.timestamp} className="mb-2">
             <p className="font-bold">{message.sender}:</p>
             <p>{message.message}</p>
             <small className="text-gray-500">{new Date(message.timestamp).toLocaleString()}</small>
-            {/* {message.sender === user.username && (
+            {message.sender === user.username && (
               <button
                 onClick={() => handleDeleteMessage(message._id)}
                 className="text-red-500 ml-2"
               >
                 Delete
               </button>
-            )} */}
+            )}
           </div>
         ))}
         {isTyping && <TypingIndicator />}

@@ -14,12 +14,16 @@ const Messenger: React.FC<{ users: any[] }> = ({ users }) => {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
   useEffect(() => {
+    if (user && user.username) {
+      socket.emit('register_user', user.username);
+    }
+
     socket.on('updateUserStatus', ({ username, status }) => {
       setOnlineUsers((prevOnlineUsers) => {
         if (status === 'online') {
           return [...prevOnlineUsers, username];
         } else {
-          return prevOnlineUsers.filter((user) => user !== username);
+          return prevOnlineUsers.filter((u) => u !== username);
         }
       });
     });
@@ -27,7 +31,7 @@ const Messenger: React.FC<{ users: any[] }> = ({ users }) => {
     return () => {
       socket.off('updateUserStatus');
     };
-  }, []);
+  }, [user]);
 
   const handleUserClick = (selectedUser: any) => {
     setCurrentChat({ user1: user.username, user2: selectedUser.username });
